@@ -1,0 +1,13 @@
+{
+    "dependencies": [
+      "folly",
+      "glog"
+    ],
+    "overrides": [
+      {
+        "name": "folly",
+        "version": "2024.06.24.00#1"
+      }
+    ]
+  }
+  
