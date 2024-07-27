@@ -9,7 +9,6 @@
 #include "defs.h"
 #include "slice.h"
 #include "memtable/iterator.h"
-#include <variant>
 
 using folly::ConcurrentSkipList;
 using std::vector;
@@ -45,7 +44,7 @@ private:
     // todo
     // optional<Wal> wal_;
     atomic<u64> approximate_size_;
-    // shared_mutex snapshot_mtx_; 
+    shared_mutex snapshot_mtx_; 
 
 public:
     MemTable(u64 id) : 

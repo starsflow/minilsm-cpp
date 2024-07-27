@@ -8,8 +8,6 @@
 #include "fmt/format.h"
 #include "memtable/iterator.h"
 #include "slice.h"
-#include <utility>
-#include <variant>
 
 namespace minilsm {
 
@@ -24,7 +22,7 @@ Slice MemTable::get(Slice key) {
 }
 
 void MemTable::put(Slice key, Slice value) { // todo : return status
-    // unique_lock<shared_mutex> mtx_w(this->snapshot_mtx_);
+    unique_lock<shared_mutex> mtx_w(this->snapshot_mtx_);
     auto estimated_size = key.size() + value.size();
     auto arr = array<Slice, 2>{key, value};
 
@@ -37,7 +35,7 @@ void MemTable::put(Slice key, Slice value) { // todo : return status
 }
 
 MemTableIterator MemTable::scan(Bound& lower, Bound& upper) {
-    // shared_lock<shared_mutex> mtx_r(this->snapshot_mtx_);
+    shared_lock<shared_mutex> mtx_r(this->snapshot_mtx_);
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator iter_s = acer.begin(), iter_e = acer.end();
     
@@ -70,7 +68,7 @@ MemTableIterator MemTable::scan(Bound& lower, Bound& upper) {
         }
     }
 
-    return MemTableIterator(this->map_, iter_s, iter_e);
+    return MemTableIterator(this->map_, mtx_r, iter_s, iter_e);
 }
 
 void MemTable::flush() {}

@@ -9,6 +9,8 @@
 #include "defs.h"
 #include "slice.h"
 #include "iterator/iterator.h"
+#include <memory>
+#include <shared_mutex>
 
 namespace minilsm {
 
@@ -28,28 +30,31 @@ private:
     SkipListAccessor accessor_;
     SkipListIterator iterator_;
     SkipListIterator end_;
-    // shared_lock<shared_mutex>& lock_; // bind lock with iterator
+    shared_lock<shared_mutex>& lock_; // bind lock with iterator
 
 public:
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr) : 
+    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& mtx) : 
         map_(sl_ptr), 
         accessor_(sl_ptr), 
         iterator_(accessor_.begin()),
-        end_(accessor_.end()) {}
+        end_(accessor_.end()),
+        lock_(mtx) {}
 
     template<class SkipListIteratorType>
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr, SkipListIteratorType&& start) : 
+    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& mtx, SkipListIteratorType&& start) : 
         map_(sl_ptr), 
         accessor_(sl_ptr), 
         iterator_(std::forward<SkipListIteratorType>(start)),
-        end_(accessor_.end()) {}
+        end_(accessor_.end()),
+        lock_(mtx) {}
     
     template<class SkipListIteratorType>
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr, SkipListIteratorType&& start, SkipListIteratorType&& end) : 
+    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& mtx, SkipListIteratorType&& start, SkipListIteratorType&& end) : 
         map_(sl_ptr), 
         accessor_(sl_ptr), 
         iterator_(std::forward<SkipListIteratorType>(start)),
-        end_(std::forward<SkipListIteratorType>(end)) {}
+        end_(std::forward<SkipListIteratorType>(end)),
+        lock_(mtx) {}
 
     Slice key() override;
 
