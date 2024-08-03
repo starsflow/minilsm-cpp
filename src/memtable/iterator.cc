@@ -8,26 +8,26 @@
 
 namespace minilsm {
 
-using std::unique_ptr;
-using std::make_unique;
+using std::shared_ptr;
+using std::make_shared;
 
 Slice MemTableIterator::key() {
-    return this->iterator_->data()[0];
+    DCHECK(this->is_valid());
+    return this->iterator_->kvpair[0];
 }
 
 Slice MemTableIterator::value() {
-    return this->iterator_->data()[1];
+    DCHECK(this->is_valid());
+    return this->iterator_->kvpair[1];
 }
 
-unique_ptr<Iterator> MemTableIterator::next() {
-    return make_unique<MemTableIterator>(this->map_, std::next(iterator_));
-}
-
-unique_ptr<Iterator> MemTableIterator::end() {
-    return make_unique<MemTableIterator>(this->map_, this->end_);
+shared_ptr<Iterator> MemTableIterator::next() {
+    DCHECK(this->iterator_ != this->end_);
+    auto iter_n = std::next(this->iterator_);
+    return make_shared<MemTableIterator>(iter_n, this->end_);
 }
 
 bool MemTableIterator::is_valid() {
-    return !this->key().empty();
+    return (!this->key().empty() && this->iterator_ != this->end_);
 }
 }

@@ -8,7 +8,9 @@
 
 #include "defs.h"
 #include "slice.h"
-#include "memtable/iterator.h"
+#include <cstdint>
+#include <cstring>
+#include <string>
 
 using folly::ConcurrentSkipList;
 using std::vector;
@@ -24,7 +26,20 @@ using std::nullopt;
 
 namespace minilsm {
 
-typedef ConcurrentSkipList<array<Slice, 2>, SliceArrayComparator> SkipListType;
+using std::shared_ptr;
+using std::make_shared;
+
+struct SlicePair {
+    std::array<Slice, 2> kvpair;
+
+    bool operator==(const SlicePair& other) const {
+        return this->kvpair[0].compare(other.kvpair[0]) == 0;
+    }
+
+    bool operator<(const SlicePair& other) const { 
+        return kvpair[0].compare(other.kvpair[0]) < 0;
+    }
+};
 
 typedef struct {
     bool inf; // true -> positive infinity; false -> negative infinity
@@ -36,7 +51,9 @@ typedef struct {
 } FinBound;
 
 using Bound = variant<InfinBound, FinBound>;
+using SkipListType = ConcurrentSkipList<SlicePair>;
 
+class MemTableIterator;
 class MemTable {
 private:
     shared_ptr<SkipListType> map_;
@@ -44,7 +61,7 @@ private:
     // todo
     // optional<Wal> wal_;
     atomic<u64> approximate_size_;
-    shared_mutex snapshot_mtx_; 
+    // shared_mutex snapshot_mtx_; 
 
 public:
     MemTable(u64 id) : 
@@ -60,7 +77,7 @@ public:
     //     approximate_size_(0),
     //     map_(SkipListType::createInstance(10)) {}
         
-
+    
     ~MemTable() = default;
 
     void create_with_wal(); // todo
@@ -71,7 +88,7 @@ public:
 
     void put(Slice, Slice);
 
-    MemTableIterator scan(Bound& lower, Bound& upper); // todo
+    shared_ptr<MemTableIterator> jump(Bound& lower); // todo
 
     void flush(); // todo
 
@@ -82,6 +99,27 @@ public:
     u64 get_approximate_size();
 
     bool is_empty();
+
+    shared_ptr<MemTableIterator> begin();
+
+    shared_ptr<MemTableIterator> end();
+
+    shared_mutex& get_mutex();
+
+    void debug_traverse() {
+        SkipListType::Accessor acer(this->map_);
+        for (auto iter = acer.begin(); iter != acer.end(); iter = std::next(iter)) {
+            auto key = iter->kvpair[0];
+            auto value = iter->kvpair[1];
+            auto key_new = new unsigned char(key.size() + 1);
+            memcpy(key_new, key.data(), key.size());
+            key_new[key.size()] = '\0';
+            auto value_new = new unsigned char(value.size() + 1);
+            memcpy(value_new, value.data(), value.size());
+            value_new[value.size()] = '\0';
+            LOG(INFO) << key_new << ":" << key.size() << ":" << value_new << ":" << value.size();
+        }
+    }
 };
 }
 
