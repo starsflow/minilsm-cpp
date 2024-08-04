@@ -11,17 +11,19 @@
 
 namespace minilsm {
 
-using std::unique_ptr;
+using std::shared_ptr;
 
 class Iterator {
 public:
-    virtual Slice value() = 0;
+    virtual Slice value() const = 0;
 
-    virtual Slice key() = 0;
+    virtual Slice key() const = 0;
 
-    virtual bool is_valid() = 0;
+    virtual bool is_valid() const = 0;
 
-    virtual unique_ptr<Iterator> next() = 0;
+    virtual bool operator==(const Iterator&) const = 0;
+
+    virtual shared_ptr<Iterator> next() = 0;
 
     virtual u64 num_active_iterators() { return 1; }
 };

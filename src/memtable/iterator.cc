@@ -11,13 +11,13 @@ namespace minilsm {
 using std::shared_ptr;
 using std::make_shared;
 
-Slice MemTableIterator::key() {
-    DCHECK(this->is_valid());
+Slice MemTableIterator::key() const {
+    DCHECK(this->iterator_.good());
     return this->iterator_->kvpair[0];
 }
 
-Slice MemTableIterator::value() {
-    DCHECK(this->is_valid());
+Slice MemTableIterator::value() const {
+    DCHECK(this->iterator_.good());
     return this->iterator_->kvpair[1];
 }
 
@@ -27,7 +27,15 @@ shared_ptr<Iterator> MemTableIterator::next() {
     return make_shared<MemTableIterator>(iter_n, this->end_);
 }
 
-bool MemTableIterator::is_valid() {
-    return (!this->key().empty() && this->iterator_ != this->end_);
+bool MemTableIterator::is_valid() const {
+    return (this->iterator_ != this->end_ && !this->key().empty());
 }
+
+bool MemTableIterator::operator==(const Iterator& other) const {
+    auto other_cast = dynamic_cast<const MemTableIterator&>(other);
+    if (!this->is_valid() && !other_cast.is_valid()) return true;
+    else if (this->is_valid() || other_cast.is_valid()) return false;
+    else if (!this->key().compare(other_cast.key())) return true;
+    else return true;
 }
+} 

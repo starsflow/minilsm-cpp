@@ -5,6 +5,7 @@
  */
 
 #include "memtable.h"
+#include "iterator/iterator.h"
 #include "memtable/iterator.h"
 #include "slice.h"
 
@@ -31,7 +32,7 @@ void MemTable::put(Slice key, Slice value) { // todo : return status
     // wal
 }
 
-shared_ptr<MemTableIterator> MemTable::jump(Bound& lower) {
+shared_ptr<Iterator> MemTable::jump(const Bound& lower) {
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator iter = acer.begin(), end = acer.end();
     auto ibptr_l = std::get_if<InfinBound>(&lower);
@@ -84,28 +85,23 @@ shared_ptr<MemTableIterator> MemTable::jump(Bound& lower) {
 //     return make_shared<MemTableIterator>(mtx_r, iter_s, iter_e);
 // }
 
-shared_ptr<MemTableIterator> MemTable::begin() { 
+shared_ptr<Iterator> MemTable::begin() { 
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator iter = acer.begin(), end = acer.end();
     return make_shared<MemTableIterator>(iter, end);
 }
 
-shared_ptr<MemTableIterator> MemTable::end() {
+shared_ptr<Iterator> MemTable::end() {
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator iter = acer.end();
     return make_shared<MemTableIterator>(iter, iter);
 }
 
-bool operator==(const shared_ptr<MemTableIterator>& lhs, const shared_ptr<MemTableIterator>& rhs) {
-    if (!lhs->is_valid() && !rhs->is_valid()) return true;
-    else if (lhs->is_valid() || rhs->is_valid()) return false;
-    else if (!lhs->key().compare(rhs->key())) return true;
-    else return true;
-}
-
 void MemTable::flush() {}
 
 u64 MemTable::get_id() { return this->id_; }
+
+u64 MemTable::get_size() { return this->map_->size(); }
 
 u64 MemTable::get_approximate_size() { return this->approximate_size_; }
 

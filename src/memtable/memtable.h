@@ -7,6 +7,7 @@
 #define MEMTABLE_H
 
 #include "defs.h"
+#include "iterator/iterator.h"
 #include "slice.h"
 #include <cstdint>
 #include <cstring>
@@ -88,7 +89,7 @@ public:
 
     void put(Slice, Slice);
 
-    shared_ptr<MemTableIterator> jump(Bound& lower); // todo
+    shared_ptr<Iterator> jump(const Bound& lower); // todo
 
     void flush(); // todo
 
@@ -96,13 +97,15 @@ public:
 
     u64 get_id();
 
+    u64 get_size();
+
     u64 get_approximate_size();
 
     bool is_empty();
 
-    shared_ptr<MemTableIterator> begin();
+    shared_ptr<Iterator> begin();
 
-    shared_ptr<MemTableIterator> end();
+    shared_ptr<Iterator> end();
 
     shared_mutex& get_mutex();
 

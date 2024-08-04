@@ -49,13 +49,15 @@ public:
     //     end_(std::forward<SkipListIteratorType>(end)),
     //     lock_(mtx) {}
 
-    Slice key() override;
+    Slice key() const override;
 
-    Slice value() override;
+    Slice value() const override;
 
     shared_ptr<Iterator> next() override;
 
-    bool is_valid() override;
+    bool is_valid() const override;
+
+    bool operator==(const Iterator&) const override;
 };
 
 }
