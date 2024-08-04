@@ -37,7 +37,7 @@ public:
 
     Slice(const char* src, uint64_t size) { ctrl_ = new BaseSlice(size, clone(src, size)); }
 
-    Slice(string& src) { 
+    Slice(const string& src) { 
         auto size = src.length();
         ctrl_ = new BaseSlice(size, clone(src.c_str(), size));
     }
@@ -58,7 +58,7 @@ public:
                 delete ctrl_;
             }
             ctrl_ = src.ctrl_;
-            if (ctrl_) { ctrl_->refcnt_ ++; }
+            if (ctrl_) { ctrl_->refcnt_++; }
         }
         return *this;
     }
@@ -83,14 +83,14 @@ public:
     }
 
     int8_t compare(const Slice& s) const {
-        if (!s.data()) return 1;
-        auto min_len = std::min(ctrl_->size_, s.size());
-        auto r = memcmp(ctrl_->data_, s.data(), min_len);
-        if (!r) {
-            if (min_len != ctrl_->size_) { r = 1; }
-            else if (min_len != s.size()) { r = -1; }
-        }
-        return r;
+        if (ctrl_->size_ > s.size()) return 1;
+        if (ctrl_->size_ < s.size()) return -1;
+        auto r = memcmp(ctrl_->data_, s.data(), ctrl_->size_);
+        return (r > 0) - (r < 0);
+    }
+
+    uint64_t debug_ref_cnt() const {
+        return this->ctrl_->refcnt_;
     }
 
 private:
@@ -103,7 +103,7 @@ private:
 
 struct SliceArrayComparator {
     int operator()(const array<Slice, 2>& ca1, const array<Slice, 2>& ca2) const { 
-        return ca1[0].compare(ca2[0]);
+        return ca1[0].compare(ca2[0]) < 0;
     }
 };
 };
