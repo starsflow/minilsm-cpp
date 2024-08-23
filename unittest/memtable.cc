@@ -14,13 +14,15 @@
 #include <thread>
 #include <vector>
 
+using namespace minilsm;
+
 class MemTableTest : public ::testing::Test {
 public:
-    minilsm::MemTable* memtable;
+    MemTable* memtable;
 
 public:
     void SetUp() override {
-        memtable = new minilsm::MemTable(0);
+        memtable = new MemTable(0);
     }
 };
 
@@ -33,14 +35,14 @@ TEST_F(MemTableTest, SigThd) {
     bool pass = true;
 
     for (i32 i = 1000; i >= 0; i -= 2) {
-        minilsm::Slice key(std::to_string(i));
-        minilsm::Slice value(std::to_string(i * 2));
-        // LOG(INFO) << i << ":" << key.size() << ":" << 2 * i << ":" << value.size() << ":" << (int32_t)key.compare(minilsm::Slice("100"));
+        KeySlice key(std::to_string(i));
+        Slice value(std::to_string(i * 2));
+        // LOG(INFO) << i << ":" << key.size() << ":" << 2 * i << ":" << value.size() << ":" << (int32_t)key.compare(Slice("100"));
         memtable->put(key, value);
     }
 
     for (i32 i = 0; i < 1001; i += 2) {
-        minilsm::Slice value(memtable->get(std::to_string(i)));
+        Slice value(memtable->get(std::to_string(i)));
         if(value.compare(std::to_string(i * 2))) {
             pass = false;
             LOG(INFO) << "test case : " << i << " fails";
@@ -50,25 +52,25 @@ TEST_F(MemTableTest, SigThd) {
     EXPECT_TRUE(pass);
 
     int num_cnt = 0;
-    for (auto iter = memtable->begin(); iter->is_valid(); iter = iter->next()) 
+    for (auto iter = memtable->begin(); iter->is_valid(); iter->next()) 
         num_cnt++;
     EXPECT_EQ(num_cnt, 501);
 
-    auto bnd_1 = memtable->jump(minilsm::InfinBound{false});
+    auto bnd_1 = memtable->jump(InfinBound{false});
     EXPECT_TRUE(!bnd_1->key().empty() && !bnd_1->key().compare("0"));
-    // auto bnd_2 = memtable->jump(minilsm::InfinBound{true});
+    // auto bnd_2 = memtable->jump(InfinBound{true});
     // EXPECT_TRUE(bnd_2->key().empty());
-    auto bnd_3 = memtable->jump(minilsm::FinBound{std::to_string(0), false});
+    auto bnd_3 = memtable->jump(FinBound{std::to_string(0), false});
     EXPECT_TRUE(!bnd_3->key().empty() && !bnd_3->key().compare("2"));
-    auto bnd_4 = memtable->jump(minilsm::FinBound{std::to_string(0), true});
+    auto bnd_4 = memtable->jump(FinBound{std::to_string(0), true});
     EXPECT_TRUE(!bnd_4->key().empty() && !bnd_4->key().compare("0"));
-    auto bnd_5 = memtable->jump(minilsm::FinBound{std::to_string(5), false});
+    auto bnd_5 = memtable->jump(FinBound{std::to_string(5), false});
     EXPECT_TRUE(!bnd_5->key().empty() && !bnd_5->key().compare("6"));
-    auto bnd_6 = memtable->jump(minilsm::FinBound{std::to_string(5), true});
+    auto bnd_6 = memtable->jump(FinBound{std::to_string(5), true});
     EXPECT_TRUE(!bnd_6->key().empty() && !bnd_6->key().compare("6"));
-    auto bnd_7 = memtable->jump(minilsm::FinBound{std::to_string(1000), false});
+    auto bnd_7 = memtable->jump(FinBound{std::to_string(1000), false});
     EXPECT_TRUE(!bnd_7->is_valid());
-    auto bnd_8 = memtable->jump(minilsm::FinBound{std::to_string(1000), true});
+    auto bnd_8 = memtable->jump(FinBound{std::to_string(1000), true});
     EXPECT_TRUE(!bnd_8->key().empty() && !bnd_8->key().compare("1000"));
 }
 
