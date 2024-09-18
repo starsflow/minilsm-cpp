@@ -37,7 +37,6 @@ TEST_F(MemTableTest, SigThd) {
     for (i32 i = 1000; i >= 0; i -= 2) {
         KeySlice key(std::to_string(i));
         Slice value(std::to_string(i * 2));
-        // LOG(INFO) << i << ":" << key.size() << ":" << 2 * i << ":" << value.size() << ":" << (int32_t)key.compare(Slice("100"));
         memtable->put(key, value);
     }
 
@@ -56,22 +55,44 @@ TEST_F(MemTableTest, SigThd) {
         num_cnt++;
     EXPECT_EQ(num_cnt, 501);
 
-    auto bnd_1 = memtable->jump(InfinBound{false});
-    EXPECT_TRUE(!bnd_1->key().empty() && !bnd_1->key().compare("0"));
-    // auto bnd_2 = memtable->jump(InfinBound{true});
-    // EXPECT_TRUE(bnd_2->key().empty());
-    auto bnd_3 = memtable->jump(FinBound{std::to_string(0), false});
-    EXPECT_TRUE(!bnd_3->key().empty() && !bnd_3->key().compare("2"));
-    auto bnd_4 = memtable->jump(FinBound{std::to_string(0), true});
-    EXPECT_TRUE(!bnd_4->key().empty() && !bnd_4->key().compare("0"));
-    auto bnd_5 = memtable->jump(FinBound{std::to_string(5), false});
-    EXPECT_TRUE(!bnd_5->key().empty() && !bnd_5->key().compare("6"));
-    auto bnd_6 = memtable->jump(FinBound{std::to_string(5), true});
-    EXPECT_TRUE(!bnd_6->key().empty() && !bnd_6->key().compare("6"));
-    auto bnd_7 = memtable->jump(FinBound{std::to_string(1000), false});
-    EXPECT_TRUE(!bnd_7->is_valid());
-    auto bnd_8 = memtable->jump(FinBound{std::to_string(1000), true});
-    EXPECT_TRUE(!bnd_8->key().empty() && !bnd_8->key().compare("1000"));
+    auto invalid_scan_1 = memtable->scan(Bound(true), Bound(false));
+    auto invalid_scan_2 = memtable->scan(Bound(true), Bound(Slice(std::to_string(111)), false));
+    auto invalid_scan_3 = memtable->scan(Bound(true), Bound(Slice(std::to_string(111)), true));
+    auto invalid_scan_4 = memtable->scan(Bound(Slice(std::to_string(112)), false), Bound(Slice(std::to_string(111)), true));
+    auto invalid_scan_5 = memtable->scan(Bound(Slice(std::to_string(111)), true), Bound(Slice(std::to_string(111)), false));
+    auto invalid_scan_6 = memtable->scan(Bound(Slice(std::to_string(1003)), true), Bound(Slice(std::to_string(11111)), false));
+    EXPECT_FALSE(invalid_scan_1->is_valid());
+    EXPECT_FALSE(invalid_scan_2->is_valid());
+    EXPECT_FALSE(invalid_scan_3->is_valid());
+    EXPECT_FALSE(invalid_scan_4->is_valid());
+    EXPECT_FALSE(invalid_scan_5->is_valid());
+    EXPECT_FALSE(invalid_scan_6->is_valid());
+
+    auto valid_scan_1 = memtable->scan(Bound(false), Bound(true));
+    for (i32 i = 0; i < 1001; i += 2) {
+        EXPECT_FALSE(valid_scan_1->key().compare(Slice(std::to_string(i))));
+        valid_scan_1->next();
+    }
+    auto valid_scan_2 = memtable->scan();
+    for (i32 i = 0; i < 1001; i += 2) {
+        EXPECT_FALSE(valid_scan_2->key().compare(Slice(std::to_string(i))));
+        valid_scan_2->next();
+    }
+    auto valid_scan_3 = memtable->scan(Bound(Slice(std::to_string(10)), false));
+    for (i32 i = 12; i < 1001; i += 2) {
+        EXPECT_FALSE(valid_scan_3->key().compare(Slice(std::to_string(i))));
+        valid_scan_3->next();
+    }
+    auto valid_scan_4 = memtable->scan(Bound(Slice(std::to_string(10)), false), Bound(Slice(std::to_string(16)), false));
+    for (i32 i = 12; i < 16; i += 2) {
+        EXPECT_FALSE(valid_scan_4->key().compare(Slice(std::to_string(i))));
+        valid_scan_4->next();
+    }
+    auto valid_scan_5 = memtable->scan(Bound(Slice(std::to_string(998)), true), Bound(Slice(std::to_string(11111)), false));
+    for (i32 i = 998; i < 1001; i += 2) {
+        EXPECT_FALSE(valid_scan_5->key().compare(Slice(std::to_string(i))));
+        valid_scan_5->next();
+    }
 }
 
 TEST_F(MemTableTest, MulThd) {

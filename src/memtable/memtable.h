@@ -9,9 +9,7 @@
 #include "defs.h"
 #include "iterator/iterator.h"
 #include "slice.h"
-#include <cstdint>
-#include <cstring>
-#include <string>
+#include "mvcc/key.h"
 
 using folly::ConcurrentSkipList;
 using std::vector;
@@ -30,29 +28,32 @@ namespace minilsm {
 using std::shared_ptr;
 using std::make_shared;
 
-struct SlicePair {
-    std::array<Slice, 2> kvpair;
+struct KVPair {
+    KeySlice key;
+    Slice value;
 
-    bool operator==(const SlicePair& other) const {
-        return this->kvpair[0].compare(other.kvpair[0]) == 0;
+    bool operator==(const KVPair& other) const {
+        return this->key.compare(other.key) == 0;
     }
 
-    bool operator<(const SlicePair& other) const { 
-        return kvpair[0].compare(other.kvpair[0]) < 0;
+    bool operator<(const KVPair& other) const {
+        return this->key.compare(other.key) < 0;
     }
 };
 
-typedef struct {
-    bool inf; // true -> positive infinity; false -> negative infinity
-} InfinBound;
+// struct SlicePair {
+//     std::array<Slice, 2> kvpair;
 
-typedef struct {
-    Slice key;
-    bool contains; // true -> do not contain the endpoint; false -> contain
-} FinBound;
+//     bool operator==(const SlicePair& other) const {
+//         return this->kvpair[0].compare(other.kvpair[0]) == 0;
+//     }
 
-using Bound = variant<InfinBound, FinBound>;
-using SkipListType = ConcurrentSkipList<SlicePair>;
+//     bool operator<(const SlicePair& other) const { 
+//         return kvpair[0].compare(other.kvpair[0]) < 0;
+//     }
+// };
+
+using SkipListType = ConcurrentSkipList<KVPair>;
 
 class MemTableIterator;
 class MemTable {
@@ -62,7 +63,6 @@ private:
     // todo
     // optional<Wal> wal_;
     atomic<u64> approximate_size_;
-    // shared_mutex snapshot_mtx_; 
 
 public:
     MemTable(u64 id) : 
@@ -89,7 +89,11 @@ public:
 
     void put(Slice, Slice);
 
-    shared_ptr<Iterator> jump(const Bound& lower); // todo
+    // shared_ptr<Iterator> jump(const Bound& lower); // todo
+    shared_ptr<Iterator> scan(
+        const Bound& lower = Bound(false), 
+        const Bound& upper = Bound(true)
+    );
 
     void flush(); // todo
 
@@ -112,15 +116,9 @@ public:
     void debug_traverse() {
         SkipListType::Accessor acer(this->map_);
         for (auto iter = acer.begin(); iter != acer.end(); iter = std::next(iter)) {
-            auto key = iter->kvpair[0];
-            auto value = iter->kvpair[1];
-            auto key_new = new unsigned char(key.size() + 1);
-            memcpy(key_new, key.data(), key.size());
-            key_new[key.size()] = '\0';
-            auto value_new = new unsigned char(value.size() + 1);
-            memcpy(value_new, value.data(), value.size());
-            value_new[value.size()] = '\0';
-            LOG(INFO) << key_new << ":" << key.size() << ":" << value_new << ":" << value.size();
+            auto key = iter->key;
+            auto value = iter->value;
+            LOG(INFO) << key << ":" << value;
         }
     }
 };

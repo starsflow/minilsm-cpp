@@ -10,54 +10,38 @@
 #include "memtable/memtable.h"
 #include "slice.h"
 #include "iterator/iterator.h"
+#include <utility>
 
 namespace minilsm {
 
 using folly::ConcurrentSkipList;
 using std::shared_ptr;
 
-using SkipListType = ConcurrentSkipList<SlicePair>;
+using SkipListType = ConcurrentSkipList<KVPair>;
 using SkipListAccessor = SkipListType::Accessor;
 using SkipListIterator = SkipListType::iterator;
 
 class MemTableIterator : public Iterator {
 private:
+    const SkipListAccessor acer_;
     SkipListIterator iterator_;
-    SkipListIterator end_;
-    // shared_lock<shared_mutex>& lock_; // bind lock with iterator
+    const Bound end_;
 
 public:
-    template<class SkipListIteratorType>
-    MemTableIterator(SkipListIteratorType&& start, SkipListIteratorType&& end) : 
-        iterator_(std::forward<SkipListIteratorType>(start)),
+    MemTableIterator(const SkipListAccessor& acer, 
+            SkipListIterator& start, 
+            const Bound& end = Bound(true)) : 
+        acer_(acer),
+        iterator_(start),
         end_(end) {}
-
-    // MemTableIterator(shared_lock<shared_mutex>& mtx, ) : 
-    //     iterator_(accessor_.begin()),
-    //     end_(accessor_.end()),
-    //     lock_(mtx) {}
-
-    // template<class SkipListIteratorType>
-    // MemTableIterator(shared_lock<shared_mutex>& mtx, SkipListIteratorType&& start) : 
-    //     iterator_(std::forward<SkipListIteratorType>(start)),
-    //     end_(accessor_.end()),
-    //     lock_(mtx) {}
     
-    // template<class SkipListIteratorType>
-    // MemTableIterator(shared_lock<shared_mutex>& mtx, SkipListIteratorType&& start, SkipListIteratorType&& end) : 
-    //     iterator_(std::forward<SkipListIteratorType>(start)),
-    //     end_(std::forward<SkipListIteratorType>(end)),
-    //     lock_(mtx) {}
-
-    Slice key() const override;
+    KeySlice key() const override;
 
     Slice value() const override;
 
-    shared_ptr<Iterator> next() override;
+    void next() override;
 
     bool is_valid() const override;
-
-    bool operator==(const Iterator&) const override;
 };
 
 }

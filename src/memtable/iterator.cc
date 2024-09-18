@@ -5,37 +5,41 @@
  */
 
 #include "memtable/iterator.h"
+#include "mvcc/key.h"
+#include <iterator>
 
 namespace minilsm {
 
-using std::shared_ptr;
-using std::make_shared;
-
-Slice MemTableIterator::key() const {
+KeySlice MemTableIterator::key() const {
     DCHECK(this->iterator_.good());
-    return this->iterator_->kvpair[0];
+    return KeySlice(this->iterator_->key);
 }
 
 Slice MemTableIterator::value() const {
     DCHECK(this->iterator_.good());
-    return this->iterator_->kvpair[1];
+    return this->iterator_->value;
 }
 
-shared_ptr<Iterator> MemTableIterator::next() {
-    DCHECK(this->iterator_ != this->end_);
-    auto iter_n = std::next(this->iterator_);
-    return make_shared<MemTableIterator>(iter_n, this->end_);
+void MemTableIterator::next() {
+    DCHECK(this->iterator_ != this->acer_.end());
+    this->iterator_ = std::next(this->iterator_);
 }
 
 bool MemTableIterator::is_valid() const {
-    return (this->iterator_ != this->end_ && !this->key().empty());
+    if (this->iterator_ == this->acer_.end()) { return false; }
+    auto end_ptr = this->end_.fin_ptr;
+    if (!end_ptr) { return true; }
+    auto cmp_res = this->key().compare(end_ptr->key);
+    if (cmp_res == -1) { return true; } 
+    else if (cmp_res == 0 && end_ptr->contains) { return true; } 
+    else { return false; }
 }
 
-bool MemTableIterator::operator==(const Iterator& other) const {
-    auto other_cast = dynamic_cast<const MemTableIterator&>(other);
-    if (!this->is_valid() && !other_cast.is_valid()) return true;
-    else if (this->is_valid() || other_cast.is_valid()) return false;
-    else if (!this->key().compare(other_cast.key())) return true;
-    else return true;
-}
+// bool MemTableIterator::operator==(const Iterator& other) const {
+//     auto other_cast = dynamic_cast<const MemTableIterator&>(other);
+//     if (!this->is_valid() && !other_cast.is_valid()) return true;
+//     else if (this->is_valid() || other_cast.is_valid()) return false;
+//     else if (!this->key().compare(other_cast.key())) return true;
+//     else return true;
+// }
 } 
