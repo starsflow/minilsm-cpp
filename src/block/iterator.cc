@@ -5,11 +5,12 @@
  */
 
 #include "block/iterator.h"
+#include "defs.h"
 
 namespace minilsm {
 
 KeySlice BlockIterator::key() const {
-    auto offset = this->block_ptr_->offsets[this->idx_];
+    auto offset = this->block_ptr_->offsets[this->current_];
     auto overlap_len = this->block_ptr_->data.get(offset, sizeof(u16));
     auto rest_len = this->block_ptr_->data.get(offset + sizeof(u16), sizeof(u16));
     auto key = KeySlice(
@@ -24,7 +25,7 @@ KeySlice BlockIterator::key() const {
 }
 
 Slice BlockIterator::value() const {
-    auto offset = this->block_ptr_->offsets[this->idx_];
+    auto offset = this->block_ptr_->offsets[this->current_];
     auto key_rest_len = this->block_ptr_->data.get(offset + sizeof(u16), sizeof(u16));
     auto value_offset = offset + sizeof(u16) + sizeof(u16) + key_rest_len + sizeof(u64);
     auto value_len = this->block_ptr_->data.get(value_offset, sizeof(u16));
@@ -32,58 +33,60 @@ Slice BlockIterator::value() const {
     return value;
 }
 
-bool BlockIterator::is_valid() const {
-    if (this->idx_ >= this->block_ptr_->offsets.size()) { 
+// todo
+bool BlockIterator::is_valid() const { 
+    if (this->current_ >= this->block_ptr_->offsets.size()) { 
         return false;
     }
-    // auto offset = this->block_ptr_->offsets[this->idx_];
-    // auto overlap_len = this->block_ptr_->data.get(offset, 2);
-    // auto key_len = this->block_ptr_->data.get(offset + 2, 2) + overlap_len;
-    // if (key_len == 0) return false;
     return true;
 }
 
 // seek the first valid key
-void BlockIterator::seek_to_first() {
-    this->seek_to(0);
-    this->first_key_ = this->key();
-
-    // first key is invalid, move to next one
-    if (this->first_key_.empty()) {
-        this->next();
-        this->first_key_ = this->key(); 
-    }
-}
+// void BlockIterator::seek_to_first() {
+//     this->seek_to(0);
+//     this->first_key_ = this->key();
+// }
 
 void BlockIterator::next() {
     DCHECK(this->is_valid());
-    this->idx_++;
+    this->current_++;
 }
 
-void BlockIterator::seek_to(size_t idx) {
-    if (idx >= this->block_ptr_->offsets.size()) {
-        return;
-    }
-    this->idx_ = idx;
-}
+// void BlockIterator::seek_to(size_t idx) {
+//     if (idx >= this->block_ptr_->offsets.size()) {
+//         return;
+//     }
+//     this->idx_ = idx;
+// }
 
 // seek to the last key not larger than `key`
-void BlockIterator::seek_to_key(const KeySlice& key) {
-    size_t low = 0;
-    size_t high = this->block_ptr_->offsets.size() - 1;
-    while (low < high) {
-        auto mid = low + (high - low) / 2 + 1;
-        this->seek_to(mid);
-        auto res = this->key().compare(key);
-        if (res < 0) {
-            low = mid;
-        } else if (res > 0) {
-            high = mid - 1;
-        } else {
-            return;
-        }
-    }
-    this->seek_to(low);
-}
+// void BlockIterator::seek_to_key(const KeySlice& key) {
+//     auto next_idx = this->locate_index(key, this->idx_);
+//     this->seek_to(next_idx);
+// }
+
+// size_t BlockIterator::locate_index(const KeySlice& key, size_t origin_idx = 0) {
+//     this->seek_to(0);
+//     if (key.compare(this->first_key_) < 0) {
+//         return -1;
+//     }
+
+//     size_t low = 0;
+//     size_t high = this->block_ptr_->offsets.size() - 1;
+//     while (low < high) {
+//         auto mid = low + (high - low) / 2 + 1;
+//         this->seek_to(mid);
+//         auto res = this->key().compare(key);
+//         if (res < 0) {
+//             low = mid;
+//         } else if (res > 0) {
+//             high = mid - 1;
+//         } else {
+//             return mid;
+//         }
+//     }
+//     this->seek_to(origin_idx);
+//     return low;
+// }
 
 }

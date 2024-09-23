@@ -11,12 +11,16 @@
 #include "util/bytes.h"
 #include "mvcc/key.h"
 #include <cstddef>
+#include <memory>
+#include <type_traits>
 
 namespace minilsm {
 
 using std::vector;
+using std::shared_ptr;
 
-/*
+/* 
+ * block format:
  * ------------------------------------------------------------------------------------------------------------------------
  * |             Data Section             |                       Offset Section                   |         Extra        |
  * ------------------------------------------------------------------------------------------------------------------------
@@ -24,36 +28,55 @@ using std::vector;
  * ------------------------------------------------------------------------------------------------------------------------
  */
 
+/*
+ * entry format:
+ * -----------------------------------------------------------------------------------------------------------------------
+ * |                                                   Entry #1                                                    | ... |
+ * -----------------------------------------------------------------------------------------------------------------------
+ * | key_len (overlap, 2B) | key_len (rest, 2B) | key (rest) | timestamp (8B) | value_len (2B) | value (value_len) | ... |
+ * -----------------------------------------------------------------------------------------------------------------------
+ */
 
-class Block {
+class BlockIterator;
+
+class Block : public std::enable_shared_from_this<Block> {
 public:
     // data section
     Bytes data;
     // offset section
     vector<u16> offsets;
+    // first key
+    KeySlice first_key;
 
 public:
-    Block(const Bytes& data, const vector<u16>& offsets) :
-        data(data), offsets(offsets) {}
+    Block(const Bytes& data, 
+            const vector<u16>& offsets, 
+            const KeySlice& first_key) :
+        data(data), 
+        offsets(offsets), 
+        first_key(first_key) {}
 
-    // construct from Bytes
-    Block(const Bytes& buf) {
-        auto size = buf.size();
-        auto entry_offsets_len = buf.get(size - sizeof(u16), sizeof(u16));
-        auto data_end = size - sizeof(u16) - entry_offsets_len * sizeof(u16);
-        for (auto addr = data_end; addr < size - sizeof(u16); addr += sizeof(u16)) {
-            auto offset = buf.get(addr, sizeof(u16));
-            this->offsets.push_back(offset);
-        }
-        
-        this->data.resize(data_end);
-        std::copy_n(buf.cbegin(), data_end, this->data.begin());
-    }
+    // deserialize from Bytes
+    Block(const Bytes& buf);
 
+    // serialize to Bytes
     Bytes serialize();
 
-    KeySlice get_first_key_from_encoded();
+    // get the key according to `idx`
+    KeySlice get_key(size_t idx);
+    
+    // locate the position of the last key less or equal to `key` in the block.
+    // the result will be tuned according to extra limitations such as whether 
+    // the key is start/end of scanning, or the key can be included.
+    size_t locate_key(const KeySlice& key, bool contains = true, bool start = true);
 
+    // number of keys in current block
+    size_t num_of_keys();
+
+    // create a iterator starting from the `idx` key
+    shared_ptr<BlockIterator> create_iterator(size_t idx = 0);
+
+#ifdef DEBUG
     bool debug_equal(const Block& other) {
         if (this->data.size() != other.data.size()) { return false; }
         if (this->offsets.size() != other.offsets.size()) { return false; }
@@ -69,15 +92,8 @@ public:
         }
         return true;
     }
+#endif
 };
-
-/*
- * -----------------------------------------------------------------------------------------------------------------------
- * |                                                   Entry #1                                                    | ... |
- * -----------------------------------------------------------------------------------------------------------------------
- * | key_len (overlap, 2B) | key_len (rest, 2B) | key (rest) | timestamp (8B) | value_len (2B) | value (value_len) | ... |
- * -----------------------------------------------------------------------------------------------------------------------
- */
 
 class BlockBuilder {
 private:
@@ -93,17 +109,21 @@ private:
 public:
     BlockBuilder(size_t block_size) : block_size_(block_size) {}
 
+    // estimated size of current block, which can be slightly exceed 
+    // the `block_size`
     size_t estimated_size();
 
+    // add `key` and `value` pair into block until first exceed the 
+    // `block_size`
     bool add(const KeySlice& key, const Slice& value);
 
     bool is_empty() ;
 
-    Block build();
+    // build a shared pointer pointing to a new block
+    shared_ptr<Block> build();
 
-    KeySlice debug_get_first_key() {
-        return this->first_key_;
-    }
+    // get first key from serialized Bytes
+    KeySlice first_key();
 };
 
 }

@@ -5,8 +5,30 @@
  */
 
 #include "block.h"
+#include "block/iterator.h"
+#include "mvcc/key.h"
+#include <cstddef>
 
 namespace minilsm {
+
+using std::make_shared;
+
+Block::Block(const Bytes& buf) {
+    auto size = buf.size();
+    auto entry_offsets_len = buf.get(size - sizeof(u16), sizeof(u16));
+    auto data_end = size - sizeof(u16) - entry_offsets_len * sizeof(u16);
+    for (auto addr = data_end; addr < size - sizeof(u16); addr += sizeof(u16)) {
+        auto offset = buf.get(addr, sizeof(u16));
+        this->offsets.push_back(offset);
+    }
+    
+    this->data.resize(data_end);
+    std::copy_n(buf.cbegin(), data_end, this->data.begin());
+
+    auto first_key_len = buf.get(sizeof(u16), sizeof(u16));
+    this->first_key = KeySlice(buf.outstream() + sizeof(u16) + sizeof(u16), first_key_len);
+    this->first_key.set_ts(buf.get(sizeof(u16) + sizeof(u16) + first_key_len, sizeof(u64)));
+}
 
 Bytes Block::serialize() {
     auto buf = this->data;
@@ -18,29 +40,61 @@ Bytes Block::serialize() {
     return buf;
 }
 
-KeySlice Block::get_first_key_from_encoded() {
+KeySlice Block::get_key(size_t idx) {
+    DCHECK(idx < this->offsets.size());
+    auto offset = this->offsets[idx];
+    auto overlap_len = this->data.get(offset, sizeof(u16));
+    auto rest_len = this->data.get(offset + sizeof(u16), sizeof(u16));
+    auto key = KeySlice(
+        overlap_len + rest_len,
+        this->first_key.data(),
+        overlap_len,
+        this->data.outstream(offset + sizeof(u16) + sizeof(u16)),
+        rest_len
+    );
+    key.set_ts(this->data.get(offset + sizeof(u16) + sizeof(u16) + rest_len, sizeof(u64)));
     auto& buf = this->data;
-    auto key_len = buf.get(0, sizeof(u16));
-    return KeySlice{buf.outstream(), key_len};
+    auto key_len = buf.get(sizeof(u16), sizeof(u16));
+
+    return key;
+}
+
+size_t Block::num_of_keys() {
+    return this->offsets.size();
+}
+
+size_t Block::locate_key(const KeySlice& key, bool contains, bool start) {
+    if (key.compare(this->first_key) < 0) { return -1; }
+    
+    size_t low = 0;
+    size_t high = this->offsets.size() - 1;
+    KeySlice anchor_key;
+    while (low < high) {
+        auto mid = low + (high - low) / 2 + 1;
+        anchor_key = this->get_key(mid);
+        auto res = anchor_key.compare(key);
+        if (res <= 0) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        } 
+    }
+    anchor_key = this->get_key(low);
+    auto res = anchor_key.compare(key);
+    DCHECK(res <= 0);
+    
+    return !start && (res == -1 || (res == 0 && contains)) ? 
+            low + 1: 
+            low;
 }
 
 size_t BlockBuilder::estimated_size() {
     return this->data_.size()                    /* data section */ 
         + this->offsets_.size() * sizeof(u16)    /* offset section */ 
-        + sizeof(u16);                          /* extra */
+        + sizeof(u16);                           /* extra */
 }
 
 bool BlockBuilder::add(const KeySlice& key, const Slice& value) {
-    if (this->estimated_size() 
-        + sizeof(u16) * 2 + key.size()      /* key_len (overlap and rest) + key */
-        + sizeof(u16) + value.size()        /* value_len + value */
-        + sizeof(u64)                       /* timestamp */
-        + sizeof(u16)                       /* offset */ 
-        > this->block_size_ 
-        && !this->is_empty()) {
-        return false;
-    }
-
     auto offset = this->data_.size();
     this->offsets_.push_back(offset);
     
@@ -57,16 +111,27 @@ bool BlockBuilder::add(const KeySlice& key, const Slice& value) {
         this->first_key_ = key;
     }
 
+    if (this->estimated_size() > this->block_size_) {
+        return false;
+    }
+
     return true;
+}
+
+shared_ptr<BlockIterator> Block::create_iterator(size_t idx) {
+    return make_shared<BlockIterator>(shared_from_this(), idx);
 }
 
 bool BlockBuilder::is_empty() {
     return this->offsets_.size() == 0;
 }
 
-Block BlockBuilder::build() {
+shared_ptr<Block> BlockBuilder::build() {
     DCHECK(!this->is_empty());
-    return Block{ this->data_, this->offsets_ };
+    return make_shared<Block>(this->data_, this->offsets_, this->first_key_);
 }
 
+KeySlice BlockBuilder::first_key() {
+    return this->first_key_;
+}
 }
