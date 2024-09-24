@@ -10,13 +10,23 @@ find_package(GTest REQUIRED PATHS ${PACKAGE_DIR})
 # file(GLOB_RECURSE test_files "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
 set(test_files 
     # ${CMAKE_CURRENT_SOURCE_DIR}/api/libfolly.cc
+    # ${CMAKE_CURRENT_SOURCE_DIR}/api/skiplist.cc
     # ${CMAKE_CURRENT_SOURCE_DIR}/slice.cc
     # ${CMAKE_CURRENT_SOURCE_DIR}/memtable.cc
-    ${CMAKE_CURRENT_SOURCE_DIR}/block.cc
+    # ${CMAKE_CURRENT_SOURCE_DIR}/block.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/sstable.cc
 )
 
 message("header path: ${SOURCE_H_DIR}")
 message("source file: ${SOURCE_CPP_FILES}")
+
+set(PROJECT_NAME "MiniLSM")
+set(PROJECT_ROOT_PATH ${CMAKE_SOURCE_DIR})
+
+configure_file(
+    "${CMAKE_SOURCE_DIR}/src/defs.h.in"
+    "${CMAKE_SOURCE_DIR}/src/defs.h"
+)
 
 foreach(test_file ${test_files})
     message("test case : ${test_file}")
