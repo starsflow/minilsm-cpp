@@ -34,9 +34,9 @@
 #define f32 float
 #define f64 double
 
-#define PROJECT_NAME "MiniLSM"
-#define PROJECT_ROOT_PATH "/home/lxc/storage/MiniLSM"
+#define PROJECT_NAME "@PROJECT_NAME@"
+#define PROJECT_ROOT_PATH "@PROJECT_ROOT_PATH@"
 
-#define Debug
+#define @BUILD_TYPE@
 
 #endif

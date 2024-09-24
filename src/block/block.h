@@ -76,7 +76,7 @@ public:
     // create a iterator starting from the `idx` key
     shared_ptr<BlockIterator> create_iterator(size_t idx = 0);
 
-#ifdef DEBUG
+#ifdef Debug
     bool debug_equal(const Block& other) {
         if (this->data.size() != other.data.size()) { return false; }
         if (this->offsets.size() != other.offsets.size()) { return false; }

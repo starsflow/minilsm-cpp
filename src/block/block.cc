@@ -64,7 +64,7 @@ size_t Block::num_of_keys() {
 }
 
 size_t Block::locate_key(const KeySlice& key, bool contains, bool start) {
-    if (key.compare(this->first_key) < 0) { return -1; }
+    if (key.compare(this->first_key) < 0) { return 0; }
     
     size_t low = 0;
     size_t high = this->offsets.size() - 1;
