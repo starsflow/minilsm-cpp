@@ -1,7 +1,7 @@
 /*
  * @Author: lxc
  * @Date: 2024-08-07 10:34:27
- * @Description: 
+ * @Description: implementation for KeySlice
  */
 
 #include "key.h"

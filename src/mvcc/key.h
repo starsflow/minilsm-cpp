@@ -1,7 +1,7 @@
 /*
  * @Author: lxc
  * @Date: 2024-08-07 10:34:22
- * @Description: slice wrapper for key
+ * @Description: slice wrapper for mvcc with timestamp
  */
 #ifndef KEY_H
 #define KEY_H

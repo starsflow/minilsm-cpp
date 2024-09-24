@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <ostream>
 #include <string>
 
 using std::atomic;
@@ -87,21 +88,20 @@ public:
 
     bool empty() const { return ctrl_->size == 0; }
 
-    void clear() { 
-        free(ctrl_->data); 
-        ctrl_->size = 0; 
-    }
+    void clear() { ctrl_->size = 0; }
 
-    // compare Slices by follwoing order:
+    // compare Slices by following order:
     // 1. compare size
-    // 2. compare lexicograpic order
+    // 2. compare lexicographic order
     // value returns when Slice a and b `a.compare(b)`:
     //  1: a > b
     //  0: a = b
     // -1: a < b
     int8_t compare(const Slice& other) const {
-        if (ctrl_->size > other.size()) return 1;
-        if (ctrl_->size < other.size()) return -1;
+        if (ctrl_->data == other.data() &&
+            ctrl_->size == other.size()) { return 0; }
+        if (ctrl_->size > other.size()) { return 1; }
+        if (ctrl_->size < other.size()) { return -1; }
         auto r = memcmp(ctrl_->data, other.data(), ctrl_->size);
         return (r > 0) - (r < 0);
     }
@@ -109,8 +109,8 @@ public:
     size_t compute_overlap(const Slice& s) const {
         size_t res = 0;
         while (true) {
-            if (res >= this->ctrl_->size || res >= s.ctrl_->size) break;
-            if (this->ctrl_->data[res] != s.ctrl_->data[res]) break;
+            if (res >= this->ctrl_->size || res >= s.ctrl_->size) { return res; }
+            if (this->ctrl_->data[res] != s.ctrl_->data[res]) { return res; }
             res++;
         }
         return res;
@@ -118,6 +118,15 @@ public:
 
     size_t debug_ref_cnt() const {
         return this->ctrl_->refcnt;
+    }
+
+    Slice clone() {
+        return Slice(this->data(), this->size());
+    }
+
+    bool operator==(const Slice& other) const {
+        if (this->size() != other.size()) { return false; }
+        return !memcmp(this->data(), other.data(), this->size());
     }
 
 private:
@@ -146,11 +155,83 @@ private:
     }
 };
 
+inline std::ostream& operator<<(std::ostream& output, const Slice& input) {
+    std::string converted_input = "";
+    for (size_t i = 0; i < input.size(); i++) {
+        if (input.data()[i] == 0) {
+            converted_input += "#";
+        } else {
+            converted_input += input.data()[i];
+        }
+    }
+    output << converted_input;
+    return output;
+}
+
 struct SliceArrayComparator {
     int operator()(const array<Slice, 2>& ca1, const array<Slice, 2>& ca2) const { 
         return ca1[0].compare(ca2[0]) < 0;
     }
 };
+
+struct InfinBound {
+    bool inf; // true -> positive infinity; false -> negative infinity
 };
+
+struct FinBound {
+    Slice key;
+    bool contains; // true -> do not contain the endpoint; false -> contain
+};
+
+struct Bound {
+    InfinBound* infin_ptr = nullptr;
+    FinBound* fin_ptr = nullptr;
+
+    Bound(bool pos) : infin_ptr(new InfinBound{pos}) {}
+    Bound(const Slice& slice, bool contains = true) : fin_ptr(new FinBound{slice, contains}){}
+    Bound(const Bound& input) {
+        if (input.fin_ptr) {
+            this->fin_ptr = new FinBound{input.fin_ptr->key, input.fin_ptr->contains}; 
+        } else {
+            this->infin_ptr = new InfinBound{input.infin_ptr->inf};
+        }
+    }
+    Bound& operator=(const Bound& input) {
+        if (this == &input) { return *this; }
+        if (input.fin_ptr) {
+            this->fin_ptr = new FinBound{input.fin_ptr->key, input.fin_ptr->contains}; 
+        } else {
+            this->infin_ptr = new InfinBound{input.infin_ptr->inf};
+        }
+        return *this;
+    }
+
+    ~Bound() { 
+        delete this->fin_ptr; 
+        delete this->infin_ptr;
+    }
+
+    // *this <= other -> true
+    // *this > other -> false
+    bool compare(const Bound& other) const {
+        if (this->infin_ptr && other.infin_ptr) {
+            if (!this->infin_ptr->inf && other.infin_ptr->inf) { return true; }
+            else { return false; }
+        } else if (this->infin_ptr) {
+            if (this->infin_ptr->inf) { return false; }
+            else { return true; }
+        } else if (other.infin_ptr) {
+            if (!other.infin_ptr->inf) { return false; }
+            else { return true; }
+        } else if (!this->fin_ptr->key.compare(other.fin_ptr->key)) {
+            if (this->fin_ptr->contains && other.fin_ptr->contains) { return true; }
+            else { return false; }
+        } else {
+            return this->fin_ptr->key.compare(other.fin_ptr->key) == -1;
+        }
+    }
+};
+
+}
 
 #endif
