@@ -1,67 +1,73 @@
 /*
  * @Author: lxc
- * @Date: 2024-04-09 23：26
- * @Description: iterators for memtable, sstable
+ * @Date: 2024-07-26 16:29:00
+ * @Description: iterator for sstable
  */
-#ifndef ITERATE_H
-#define ITERATE_H
+#ifndef SSTABLE_ITERATOR_H
+#define SSTABLE_ITERATOR_H
 
+#include "block/block.h"
+#include "block/iterator.h"
 #include "defs.h"
+#include "iterator/iterator.h"
+#include "mvcc/key.h"
 #include "slice.h"
-#include <shared_mutex>
-
-using folly::ConcurrentSkipList;
-using std::shared_ptr;
-using std::make_shared;
-using std::shared_lock;
-using std::shared_mutex;
+#include "sstable/sstable.h"
+#include <cstddef>
+#include <type_traits>
 
 namespace minilsm {
-typedef ConcurrentSkipList<array<Slice, 2>, SliceArrayComparator> SkipListType;
-typedef SkipListType::Accessor Accessor;
-typedef SkipListType::iterator Iterator;
-class MemTableIterator {
+
+class LevelIterator;
+
+class SSTableIterator : public Iterator {
 private:
-    shared_ptr<SkipListType> map_;
-    Accessor accessor_;
-    Iterator iterator_;
-    Iterator end_;
-    shared_lock<shared_mutex>& lock_; // bind lock with iterator
+    shared_ptr<SSTable> table_ptr_;
+    shared_ptr<BlockIterator> current_block_iter_;
+    size_t current_block_idx_;
+    size_t current_key_idx_;
 
+    friend class LevelIterator;
 public:
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& lock) : 
-        map_(sl_ptr), 
-        accessor_(sl_ptr), 
-        iterator_(accessor_.begin()),
-        end_(accessor_.end()),
-        lock_(lock) {}
+    SSTableIterator(shared_ptr<SSTable> table,
+        size_t block_idx = 0, 
+        size_t key_idx = 0);
 
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& lock, Iterator it) : 
-        map_(sl_ptr), 
-        accessor_(sl_ptr), 
-        iterator_(it),
-        end_(accessor_.end()),
-        lock_(lock) {}
-    
-    MemTableIterator(shared_ptr<SkipListType> sl_ptr, shared_lock<shared_mutex>& lock, Iterator it, Iterator end) : 
-        map_(sl_ptr), 
-        accessor_(sl_ptr), 
-        iterator_(it),
-        end_(end),
-        lock_(lock) {}
+    Slice value() const override;
 
-    Slice key();
+    KeySlice key() const override;
 
-    Slice value();
+    bool is_valid() const override;
 
-    MemTableIterator next();
-
-    MemTableIterator end();
-
-    bool is_valid();
+    void next() override;
 };
 
-}
+class LevelIterator : public Iterator {
+private:
+    shared_ptr<Level> level_;
+    // the end bound of the iterator
+    // the format:
+    // <sstable index in `ssts_`, 
+    // block index in the sstable,
+    // key index in the block>
+    array<size_t, 3> end_;
+    array<size_t, 3> current_;
+    shared_ptr<SSTableIterator> current_sst_iter_;
 
+public:
+    LevelIterator(shared_ptr<Level> level_ptr, const array<size_t, 3>& start,
+        const array<size_t, 3>& end, const Bound& start_bound);
+
+    KeySlice key() const override;
+
+    Slice value() const override;
+
+    bool is_valid() const override;
+
+    void next() override;
+
+    size_t num_active_iterators() override;
+};
+}
 
 #endif
