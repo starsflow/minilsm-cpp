@@ -35,7 +35,7 @@
 #define f64 double
 
 #define PROJECT_NAME "MiniLSM"
-#define PROJECT_ROOT_PATH "/home/lxc/storage/MiniLSM"
+#define PROJECT_ROOT_PATH "/home/lxc/storage/minilsm-cpp"
 
 #define Debug
 
