@@ -35,11 +35,8 @@ bool MemTableIterator::is_valid() const {
     else { return false; }
 }
 
-// bool MemTableIterator::operator==(const Iterator& other) const {
-//     auto other_cast = dynamic_cast<const MemTableIterator&>(other);
-//     if (!this->is_valid() && !other_cast.is_valid()) return true;
-//     else if (this->is_valid() || other_cast.is_valid()) return false;
-//     else if (!this->key().compare(other_cast.key())) return true;
-//     else return true;
-// }
+size_t MemTableIterator::num_active_iterators() {
+    return this->is_valid();
+}
+
 } 

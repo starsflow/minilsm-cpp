@@ -32,7 +32,7 @@ void MemTable::put(Slice key, Slice value) { // todo : return status
     // wal
 }
 
-shared_ptr<Iterator> MemTable::scan(const Bound& start, const Bound& end) {
+shared_ptr<MemTableIterator> MemTable::scan(const Bound& start, const Bound& end) {
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator start_iter = acer.begin(), end_iter = acer.end();
 
@@ -51,15 +51,9 @@ shared_ptr<Iterator> MemTable::scan(const Bound& start, const Bound& end) {
     return make_shared<MemTableIterator>(acer, start_iter, end);
 }
 
-shared_ptr<Iterator> MemTable::begin() { 
+shared_ptr<MemTableIterator> MemTable::create_iterator() { 
     SkipListType::Accessor acer(this->map_);
     SkipListType::iterator iter = acer.begin();
-    return make_shared<MemTableIterator>(acer, iter);
-}
-
-shared_ptr<Iterator> MemTable::end() {
-    SkipListType::Accessor acer(this->map_);
-    SkipListType::iterator iter = acer.end();
     return make_shared<MemTableIterator>(acer, iter);
 }
 

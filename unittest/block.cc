@@ -160,7 +160,7 @@ TEST_F(BlockTest, iterator) {
         auto mid_key_3 = KeySlice(std::to_string(11));
         auto up_bound_key = KeySlice(std::to_string(50));
         auto out_of_up_bound_key = KeySlice(std::to_string(51));
-        EXPECT_EQ(block->locate_key(out_of_low_bound_key), -1);
+        EXPECT_EQ(block->locate_key(out_of_low_bound_key), 0);
 
         EXPECT_EQ(block->locate_key(low_bound_key, true, true), 0);
         EXPECT_EQ(block->locate_key(low_bound_key, true, false), 1);

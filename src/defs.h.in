@@ -37,6 +37,6 @@
 #define PROJECT_NAME "@PROJECT_NAME@"
 #define PROJECT_ROOT_PATH "@PROJECT_ROOT_PATH@"
 
-#define @BUILD_TYPE@
+#define @CMAKE_BUILD_TYPE@
 
 #endif

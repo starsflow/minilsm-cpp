@@ -225,7 +225,7 @@ size_t SSTableBuilder::estimated_size() {
     return this->data_.size();
 }
 
-SSTable SSTableBuilder::build(
+shared_ptr<SSTable> SSTableBuilder::build(
         size_t id, 
         shared_ptr<BlockCache> block_cache, 
         const string& path) {
@@ -263,7 +263,7 @@ SSTable SSTableBuilder::build(
         file.close();
     }
 
-    return SSTable {
+    return make_shared<SSTable>(
         id,
         path,
         this->meta,
@@ -271,7 +271,7 @@ SSTable SSTableBuilder::build(
         block_cache,
         this->bloom_,
         this->max_ts_
-    };
+    );
 }
 
 void SSTableBuilder::finish_block() {

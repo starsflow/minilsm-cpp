@@ -107,6 +107,8 @@ private:
     KeySlice first_key_;
 
 public:
+    BlockBuilder() = default;
+
     BlockBuilder(size_t block_size) : block_size_(block_size) {}
 
     // estimated size of current block, which can be slightly exceed 

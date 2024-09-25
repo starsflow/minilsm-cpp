@@ -48,6 +48,10 @@ void SSTableIterator::next() {
     }
 }
 
+size_t SSTableIterator::num_active_iterators() {
+    return this->is_valid();
+}
+
 LevelIterator::LevelIterator(shared_ptr<Level> level_ptr, 
             const array<size_t, 3>& start,
             const array<size_t, 3>& end,
@@ -109,7 +113,7 @@ void LevelIterator::next() {
 }
 
 size_t LevelIterator::num_active_iterators() {
-    return this->level_->num_of_ssts();
+    return this->is_valid();
 }
 
 }

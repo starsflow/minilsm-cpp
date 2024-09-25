@@ -41,18 +41,6 @@ struct KVPair {
     }
 };
 
-// struct SlicePair {
-//     std::array<Slice, 2> kvpair;
-
-//     bool operator==(const SlicePair& other) const {
-//         return this->kvpair[0].compare(other.kvpair[0]) == 0;
-//     }
-
-//     bool operator<(const SlicePair& other) const { 
-//         return kvpair[0].compare(other.kvpair[0]) < 0;
-//     }
-// };
-
 using SkipListType = ConcurrentSkipList<KVPair>;
 
 class MemTableIterator;
@@ -89,11 +77,11 @@ public:
 
     void put(Slice, Slice);
 
-    // shared_ptr<Iterator> jump(const Bound& lower); // todo
-    shared_ptr<Iterator> scan(
+    shared_ptr<MemTableIterator> scan(
         const Bound& lower = Bound(false), 
-        const Bound& upper = Bound(true)
-    );
+        const Bound& upper = Bound(true));
+
+    shared_ptr<MemTableIterator> create_iterator();
 
     void flush(); // todo
 
@@ -107,12 +95,7 @@ public:
 
     bool is_empty();
 
-    shared_ptr<Iterator> begin();
-
-    shared_ptr<Iterator> end();
-
-    shared_mutex& get_mutex();
-
+#ifdef Debug
     void debug_traverse() {
         SkipListType::Accessor acer(this->map_);
         for (auto iter = acer.begin(); iter != acer.end(); iter = std::next(iter)) {
@@ -121,6 +104,7 @@ public:
             LOG(INFO) << key << ":" << value;
         }
     }
+#endif
 };
 }
 

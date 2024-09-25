@@ -45,4 +45,8 @@ void BlockIterator::next() {
     this->current_++;
 }
 
+size_t BlockIterator::num_active_iterators() {
+    return this->is_valid();
+}
+
 }

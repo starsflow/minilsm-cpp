@@ -190,6 +190,8 @@ public:
     vector<BlockMeta> meta;
 
 public:
+    SSTableBuilder() = default;
+
     SSTableBuilder(size_t block_size, size_t estimated_key_cnt, 
         double expected_false_positive_rate);
 
@@ -197,7 +199,7 @@ public:
 
     size_t estimated_size();
 
-    SSTable build(size_t id, shared_ptr<BlockCache> block_cache, 
+    shared_ptr<SSTable> build(size_t id, shared_ptr<BlockCache> block_cache, 
         const string& path);
 
 #ifdef Debug
@@ -230,7 +232,9 @@ public:
     
     size_t num_of_ssts();
 
-    shared_ptr<LevelIterator> scan(const Bound& start, const Bound& end);
+    shared_ptr<LevelIterator> scan(
+        const Bound& lower = Bound(false), 
+        const Bound& upper = Bound(true));
 
     shared_ptr<SSTable> get_sstable(size_t idx);
 

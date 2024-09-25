@@ -45,3 +45,6 @@ build/
 
 # External libraries
 vcpkg_installed/
+
+# Generated files
+src/defs.h

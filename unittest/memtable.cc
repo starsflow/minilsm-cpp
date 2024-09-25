@@ -51,7 +51,7 @@ TEST_F(MemTableTest, SigThd) {
     EXPECT_TRUE(pass);
 
     int num_cnt = 0;
-    for (auto iter = memtable->begin(); iter->is_valid(); iter->next()) 
+    for (auto iter = memtable->create_iterator(); iter->is_valid(); iter->next()) 
         num_cnt++;
     EXPECT_EQ(num_cnt, 501);
 

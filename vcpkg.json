@@ -1,7 +1,8 @@
 {
     "dependencies": [
       "folly",
-      "glog"
+      "glog",
+      "gtest"
     ],
     "overrides": [
       {

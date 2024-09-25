@@ -3,7 +3,6 @@ set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 project(minilsm)
 
 set(CMAKE_CXX_STANDARD 17)
-set(BUILD_TYPE "Debug")
 set(CMAKE_BUILD_TYPE ${BUILD_TYPE})
 
 set(PACKAGE_DIR ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-linux/)
@@ -23,6 +22,7 @@ set(SOURCE_CPP_FILES
     ${CMAKE_SOURCE_DIR}/src/sstable/iterator.cc
     ${CMAKE_SOURCE_DIR}/src/mvcc/key.cc
     ${CMAKE_SOURCE_DIR}/src/util/skiplist.cc
+    ${CMAKE_SOURCE_DIR}/src/iterator/merge.cc
 )
 # file(GLOB_RECURSE SOURCE_CC_PATH ${CMAKE_SOURCE_DIR}/src/*.cc)
 

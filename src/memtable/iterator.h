@@ -42,6 +42,8 @@ public:
     void next() override;
 
     bool is_valid() const override;
+
+    size_t num_active_iterators() override;
 };
 
 }

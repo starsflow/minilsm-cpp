@@ -40,6 +40,8 @@ public:
     bool is_valid() const override;
 
     void next() override;
+
+    size_t num_active_iterators() override;
 };
 
 class LevelIterator : public Iterator {
