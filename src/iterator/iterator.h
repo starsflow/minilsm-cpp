@@ -7,7 +7,7 @@
 #define ITERATOR_ITERATOR_H
 
 #include "defs.h"
-#include "slice.h"
+#include "mvcc/key.h"
 
 namespace minilsm {
 
@@ -17,13 +17,13 @@ class Iterator {
 public:
     virtual Slice value() const = 0;
 
-    virtual Slice key() const = 0;
+    virtual KeySlice key() const = 0;
 
+    // mark whether the iter reach the end
     virtual bool is_valid() const = 0;
 
-    virtual bool operator==(const Iterator&) const = 0;
-
-    virtual shared_ptr<Iterator> next() = 0;
+    // find next valid position or the end
+    virtual void next() = 0;
 
     virtual u64 num_active_iterators() { return 1; }
 };

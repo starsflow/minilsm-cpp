@@ -11,10 +11,11 @@ find_package(GTest REQUIRED PATHS ${PACKAGE_DIR})
 set(test_files 
     # ${CMAKE_CURRENT_SOURCE_DIR}/api/libfolly.cc
     # ${CMAKE_CURRENT_SOURCE_DIR}/api/skiplist.cc
-    # ${CMAKE_CURRENT_SOURCE_DIR}/slice.cc
-    # ${CMAKE_CURRENT_SOURCE_DIR}/memtable.cc
-    # ${CMAKE_CURRENT_SOURCE_DIR}/block.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/slice.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/memtable.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/block.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/sstable.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/iterator.cc
 )
 
 message("header path: ${SOURCE_H_DIR}")
