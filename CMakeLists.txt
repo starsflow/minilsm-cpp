@@ -3,9 +3,22 @@ set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 project(minilsm)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE ${BUILD_TYPE})
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+endif()
 
 set(PACKAGE_DIR ${CMAKE_SOURCE_DIR}/vcpkg_installed/x64-linux/)
+
+configure_file(
+    "${CMAKE_SOURCE_DIR}/src/defs.h.ini"
+    "${CMAKE_SOURCE_DIR}/src/defs.h"
+)
 
 find_package(folly REQUIRED REQUIRED PATHS ${PACKAGE_DIR})
 find_package(glog REQUIRED REQUIRED PATHS ${PACKAGE_DIR})

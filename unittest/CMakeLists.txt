@@ -24,11 +24,6 @@ message("source file: ${SOURCE_CPP_FILES}")
 set(PROJECT_NAME "MiniLSM")
 set(PROJECT_ROOT_PATH ${CMAKE_SOURCE_DIR})
 
-configure_file(
-    "${CMAKE_SOURCE_DIR}/src/defs.h.in"
-    "${CMAKE_SOURCE_DIR}/src/defs.h"
-)
-
 foreach(test_file ${test_files})
     message("test case : ${test_file}")
     cmake_path(GET test_file STEM test_case)
