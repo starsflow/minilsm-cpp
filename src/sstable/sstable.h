@@ -17,6 +17,7 @@
 #include "util/bloom.h"
 #include "util/bytes.h"
 #include "util/file.h"
+#include "util/queue.h"
 #include <bits/types/FILE.h>
 #include <cstddef>
 #include <ios>
@@ -118,6 +119,8 @@ public:
 
     SSTable(size_t id, const string& file_path, vector<BlockMeta>& meta, 
         size_t meta_offset, shared_ptr<BlockCache> cache, bloom_filter& bloom, u64 ts);
+
+    ~SSTable();
 
     shared_ptr<Block> get_block(size_t block_idx);
 
@@ -224,12 +227,17 @@ public:
 
 private:
     vector<shared_ptr<SSTable>> ssts_;
+    vector<size_t> sst_ids_;
 
 public:
     Level(int id, vector<shared_ptr<SSTable>>& sstables) :
-        id(id),
-        ssts_(sstables) {}
-    
+            id(id),
+            ssts_(sstables) {
+        for (auto sst_ptr : sstables) {
+            sst_ids_.push_back(sst_ptr->id);
+        }
+    }
+
     size_t num_of_ssts();
 
     shared_ptr<LevelIterator> scan(
@@ -239,6 +247,24 @@ public:
     shared_ptr<SSTable> get_sstable(size_t idx);
 
     size_t locate_sstable(const KeySlice& key);
+};
+
+class Level0 {
+private:
+    SPSC::Queue<shared_ptr<SSTable>> ssts_queue_;
+    
+public:
+    bool insert(const shared_ptr<SSTable>& sst_ptr) {
+        return this->ssts_queue_.push(sst_ptr);
+    }
+
+    bool fetch(shared_ptr<SSTable>& sst_ptr) {
+        return this->ssts_queue_.pop(sst_ptr);
+    }
+
+    size_t num_of_ssts() {
+        return this->ssts_queue_.size();
+    }
 };
 
 }

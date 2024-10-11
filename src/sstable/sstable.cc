@@ -129,6 +129,11 @@ SSTable::SSTable(size_t id, const string& file_path, vector<BlockMeta>& meta,
     bloom_(bloom),
     block_cache_(cache) {}
 
+SSTable::~SSTable() {
+    // remove sst file
+    // remove from sst_hashmap
+}
+
 shared_ptr<Block> SSTable::get_block(size_t block_idx) {
     auto res = this->block_cache_->find(block_idx);
     if (res != this->block_cache_->end()) {
